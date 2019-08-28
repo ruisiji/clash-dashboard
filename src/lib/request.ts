@@ -102,13 +102,14 @@ export async function getInstance () {
     }
 
     const {
+        scheme,
         hostname,
         port,
         secret
     } = await getExternalControllerConfig()
 
     instance = axios.create({
-        baseURL: `//${hostname}:${port}`,
+        baseURL: `${scheme}://${hostname}:${port}`,
         headers: secret ? { Authorization: `Bearer ${secret}` } : {}
     })
 
@@ -120,12 +121,14 @@ export async function getExternalControllerConfig () {
         const info = await jsBridge.getAPIInfo()
 
         return {
+            scheme: 'http',
             hostname: info.host,
             port: info.port,
             secret: info.secret
         }
     }
 
+    const scheme = 'http'
     const hostname = getLocalStorageItem('externalControllerAddr', '127.0.0.1')
     const port = getLocalStorageItem('externalControllerPort', '9090')
     const secret = getLocalStorageItem('secret', '')
@@ -134,7 +137,7 @@ export async function getExternalControllerConfig () {
         throw new Error('can\'t get hostname or port')
     }
 
-    return { hostname, port, secret }
+    return { scheme, hostname, port, secret }
 }
 
 export async function getLogsStreamReader () {
@@ -143,7 +146,7 @@ export async function getLogsStreamReader () {
     }
     const externalController = await getExternalControllerConfig()
     const { data: config } = await getConfig()
-    const logUrl = `//${externalController.hostname}:${externalController.port}/logs?level=${config['log-level']}`
+    const logUrl = `${externalController.scheme}://${externalController.hostname}:${externalController.port}/logs?level=${config['log-level']}`
     const auth = externalController.secret ? { Authorization: `Bearer ${externalController.secret}` } : {}
     logsStreamReader = new StreamReader({ url: logUrl, bufferLength: 200, headers: auth })
     return logsStreamReader
